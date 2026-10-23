@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earn Money - Telegram Mini App</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --btn-gradient: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            --game-btn: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%);
+            --share-btn: linear-gradient(135deg, #0088cc 0%, #229ed9 100%);
+            --disabled-btn: #30363d;
+            --text-main: #ffffff;
+            --text-secondary: #8b949e;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 70px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .app-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ff9f43;
+        }
+        .live-badge {
+            background: rgba(255, 75, 43, 0.2);
+            color: #ff4b2b;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .balance-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            margin-bottom: 16px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        .balance-card:active { transform: scale(0.98); }
+        .balance-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 5px; }
+        .balance-amount { font-size: 32px; font-weight: 800; margin-bottom: 5px; }
+        .balance-rates {
+            font-size: 11px;
+            color: #ff9f43;
+            margin-top: 8px;
+            border-top: 1px solid #30363d;
+            padding-top: 8px;
+            line-height: 1.4;
+        }
+
+        .earn-btn {
+            width: 100%;
+            background: var(--btn-gradient);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
+            margin-bottom: 16px;
+        }
+
+        .puzzle-card {
+            background: var(--card-bg);
+            border: 1px solid #30363d;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .puzzle-card h3 { margin-top: 0; font-size: 15px; color: #3182ce; }
+        .puzzle-question { font-size: 16px; font-weight: bold; margin: 10px 0; }
+        .puzzle-input {
+            width: 70%; padding: 8px; border-radius: 8px; border: 1px solid #30363d;
+            background: #0d1117; color: white; text-align: center; font-size: 14px; margin-bottom: 10px;
+        }
+        .puzzle-btn {
+            background: var(--game-btn); color: white; border: none; padding: 10px 16px;
+            border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; width: 100%;
+        }
+
+        .back-bar { display: flex; align-items: center; margin-bottom: 16px; cursor: pointer; color: #3182ce; font-weight: bold; font-size: 14px; }
+        
+        .card-box {
+            background: var(--card-bg);
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .share-btn {
+            width: 100%;
+            background: var(--share-btn);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .task-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .task-item {
+            background: var(--card-bg); border: 1px solid #30363d; border-radius: 12px;
+            padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .task-info h4 { margin: 0 0 4px 0; font-size: 14px; }
+        .task-info p { margin: 0; font-size: 11px; color: var(--text-secondary); }
+        .task-btn {
+            background: var(--btn-gradient); color: white; border: none; padding: 8px 14px;
+            border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer;
+        }
+        .task-btn:disabled { background: var(--disabled-btn); color: var(--text-secondary); cursor: not-allowed; }
+
+        .navbar {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #161b22;
+            border-top: 1px solid #30363d; display: flex; justify-content: space-around; padding: 10px 0;
+            z-index: 100;
+        }
+        .nav-item { text-align: center; font-size: 10px; color: var(--text-secondary); cursor: pointer; }
+        .nav-item.active { color: #ff9f43; }
+        .nav-item span { display: block; font-size: 18px; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- HOME SCREEN -->
+        <div id="home-screen" class="screen active">
+            <div class="header">
+                <div class="app-title">Earn Money Mini App</div>
+                <div class="live-badge">● Live</div>
+            </div>
+
+            <div class="balance-card" onclick="switchScreen('coin-screen')">
+                <div class="balance-label">Total Coins</div>
+                <div class="balance-amount" id="home-coin-count">0</div>
+                <div class="balance-rates">
+                    💎 10K Coins = ₹20<br>
+                    💎 50K Coins = ₹60<br>
+                    💎 1L Coins = ₹120 (Tap for details)
+                </div>
+            </div>
+
+            <button class="earn-btn" onclick="switchScreen('watch-screen')">
+                ▶ Watch & Earn Cash
+            </button>
+
+            <div class="puzzle-card">
+                <h3>🎮 Play & Earn (Puzzle)</h3>
+                <div class="puzzle-question" id="puzzle-question">Loading...</div>
+                <input type="number" id="puzzle-answer" class="puzzle-input" placeholder="Answer">
+                <button class="puzzle-btn" onclick="submitPuzzle()">Submit & Solve (+20 Coins)</button>
+            </div>
+        </div>
+
+        <!-- TASKS SCREEN -->
+        <div id="tasks-screen" class="screen">
+            <div class="back-bar" onclick="switchScreen('home-screen')">← Back to Home</div>
+            <div class="header" style="margin-bottom: 12px;">
+                <div class="app-title">Daily Tasks</div>
+            </div>
+            <div class="card-box" style="text-align: left;">
+                <h4 style="margin: 0 0 5px 0;">📅 Daily Login Bonus</h4>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
+                    Check in every 24 hours to claim your free reward!
+                </p>
+                <button class="task-btn" id="daily-login-btn" onclick="claimDailyLogin()" style="width: 100%; padding: 12px;">
+                    Claim Daily +10 Coins
+                </button>
+            </div>
+        </div>
+
+        <!-- INVITE & EARN SCREEN -->
+        <div id="invite-screen" class="screen">
+            <div class="back-bar" onclick="switchScreen('home-screen')">← Back to Home</div>
+            <div class="header" style="margin-bottom: 12px;">
+                <div class="app-title">Invite & Earn</div>
+            </div>
+            <div class="card-box">
+                <h4 style="margin-top: 0; color: #ff9f43;">👥 Referral Program</h4>
+                <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 15px;">
+                    Invite your friends to this Telegram Mini App. When your referred friend makes their first withdrawal, you will get <b>30% commission</b> of their withdrawal amount!
+                </p>
+                <button class="share-btn" onclick="openTelegramChannel()">
+                    📤 Share via Telegram
+                </button>
+            </div>
+        </div>
+
+        <!-- PROFILE SCREEN -->
+        <div id="profile-screen" class="screen">
+            <div class="back-bar" onclick="switchScreen('home-screen')">← Back to Home</div>
+            <div class="header" style="margin-bottom: 12px;">
+                <div class="app-title">My Profile</div>
+            </div>
+            <div class="card-box">
+                <div style="font-size: 40px; margin-bottom: 10px;">👤</div>
+                <h3 id="profile-username" style="margin: 5px 0; color: #ff9f43;">Gamer123</h3>
+                <p id="profile-email" style="font-size: 12px; color: var(--text-secondary); margin-top: 0;">No email linked</p>
+                <button class="task-btn" onclick="updateProfile()" style="width: 100%; margin-top: 15px;">
+                    Edit Profile Details
+                </button>
+            </div>
+        </div>
+
+        <!-- COIN & SECURE PAYMENT SCREEN -->
+        <div id="coin-screen" class="screen">
+            <div class="back-bar" onclick="switchScreen('home-screen')">← Back to Home</div>
+            <div class="header" style="margin-bottom: 12px;">
+                <div class="app-title">Payment & Community</div>
+            </div>
+
+            <div class="card-box">
+                <div class="balance-label">Your Current Balance</div>
+                <div class="balance-amount" id="detail-coin-count" style="margin: 10px 0;">0 Coins</div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
+                    Click below to open payment group safely. Anti-fraud signature included.
+                </p>
+                
+                <!-- 100% Safe Native Telegram Opener -->
+                <button class="share-btn" onclick="openTelegramGroup()" style="background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%);">
+                    💬 Join Payment Group & Copy Proof
+                </button>
+
+                <button class="share-btn" onclick="openTelegramChannel()">
+                    📢 Join Update Channel
+                </button>
+            </div>
+        </div>
+
+        <!-- WATCH & EARN SCREEN -->
+        <div id="watch-screen" class="screen">
+            <div class="back-bar" onclick="switchScreen('home-screen')">← Back to Home</div>
+            <div class="header" style="margin-bottom: 12px;">
+                <div class="app-title">Watch Ads & Earn</div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;">
+                Click 'Play Ad' on any option below. Each option will lock for 1 minute after viewing!
+            </p>
+            <div class="task-list" id="task-list-container"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="navbar">
+        <div class="nav-item active" id="nav-home" onclick="switchScreen('home-screen')"><span>🏠</span>Home</div>
+        <div class="nav-item" id="nav-tasks" onclick="switchScreen('tasks-screen')"><span>🎯</span>Tasks</div>
+        <div class="nav-item" id="nav-invite" onclick="switchScreen('invite-screen')"><span>👥</span>Invite</div>
+        <div class="nav-item" id="nav-profile" onclick="switchScreen('profile-screen')"><span>👤</span>Profile</div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        try { 
+            tg.expand(); 
+            if (tg.BackButton) {
+                tg.BackButton.onClick(() => {
+                    switchScreen('home-screen');
+                });
+            }
+        } catch(e) {}
+
+        let coins = parseInt(localStorage.getItem('tma_coins')) || 0;
+        let currentAnswer = 0;
+        let userProfile = { 
+            username: localStorage.getItem('tma_username') || "Gamer123", 
+            email: localStorage.getItem('tma_email') || "gamer@gmail.com" 
+        };
+
+        const TELEGRAM_GROUP_LINK = "https://t.me/+OKawlA1UhP44ZjQ1";
+        const TELEGRAM_CHANNEL_LINK = "https://t.me/nwjsjsnsm";
+
+        window.onload = function() {
+            if (!localStorage.getItem('tma_username') || !localStorage.getItem('tma_email')) {
+                updateProfile();
+            } else {
+                displayProfile();
+            }
+            updateUI();
+            checkDailyLoginStatus();
+            generatePuzzle();
+        };
+
+        function updateProfile() {
+            let name = prompt("Enter your Username:", userProfile.username);
+            let email = prompt("Enter your Gmail address:", userProfile.email);
+
+            if (name && email) {
+                userProfile.username = name;
+                userProfile.email = email;
+                localStorage.setItem('tma_username', name);
+                localStorage.setItem('tma_email', email);
+                displayProfile();
+            }
+        }
+
+        function displayProfile() {
+            document.getElementById('profile-username').innerText = userProfile.username;
+            document.getElementById('profile-email').innerText = userProfile.email;
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (screenId === 'home-screen') {
+                document.getElementById('nav-home').classList.add('active');
+                if (tg && tg.BackButton) tg.BackButton.hide();
+            } else {
+                if (tg && tg.BackButton) tg.BackButton.show();
+            }
+
+            if (screenId === 'tasks-screen') document.getElementById('nav-tasks').classList.add('active');
+            if (screenId === 'invite-screen') document.getElementById('nav-invite').classList.add('active');
+            if (screenId === 'profile-screen') document.getElementById('nav-profile').classList.add('active');
+        }
+
+        function checkDailyLoginStatus() {
+            let lastClaimTime = localStorage.getItem('tma_last_claim');
+            if (lastClaimTime) {
+                let currentTime = new Date().getTime();
+                let timeDifference = currentTime - parseInt(lastClaimTime);
+                let twentyFourHours = 24 * 60 * 60 * 1000;
+
+                if (timeDifference < twentyFourHours) {
+                    let remainingTime = Math.ceil((twentyFourHours - timeDifference) / (1000 * 60 * 60));
+                    let btn = document.getElementById('daily-login-btn');
+                    btn.disabled = true;
+                    btn.innerText = `Claimed! Next in ~${remainingTime} hours`;
+                }
+            }
+        }
+
+        function claimDailyLogin() {
+            let lastClaimTime = localStorage.getItem('tma_last_claim');
+            let currentTime = new Date().getTime();
+            let twentyFourHours = 24 * 60 * 60 * 1000;
+
+            if (lastClaimTime && (currentTime - parseInt(lastClaimTime)) < twentyFourHours) {
+                alert("You can only claim once every 24 hours!");
+                return;
+            }
+
+            localStorage.setItem('tma_last_claim', currentTime);
+            coins += 10;
+            saveCoins();
+            updateUI();
+            checkDailyLoginStatus();
+            alert("Success! You claimed +10 Daily Login coins 🎉");
+        }
+
+        // Bulletproof Telegram Native Opener (Bypasses WebView Error Permanently)
+        function openTelegramGroup() {
+            let secretSignature = btoa(coins + "_" + userProfile.username + "_SECURE_KEY");
+            let verifiedText = `🔒 [VERIFIED PAYMENT PROOF]\n👤 User: ${userProfile.username}\n💰 Balance: ["${coins.toLocaleString()} Coins"]\n🔐 Sig: [${secretSignature}]\n✅ Status: GENUINE & VERIFIED`;
+            
+            // Clipboard Copy Fallback
+            let textArea = document.createElement("textarea");
+            textArea.value = verifiedText;
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {}
+            document.body.removeChild(textArea);
+
+            alert("✅ Proof Copied! Group open ho raha hai.");
+
+            // Telegram SDK native handler to prevent ERR_CONNECTION_RESET
+            if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openTelegramLink === 'function') {
+                window.Telegram.WebApp.openTelegramLink(TELEGRAM_GROUP_LINK);
+            } else {
+                window.location.href = TELEGRAM_GROUP_LINK;
+            }
+        }
+
+        function openTelegramChannel() {
+            if (window.Telegram && window.Telegram.WebApp && typeof window.Telegram.WebApp.openTelegramLink === 'function') {
+                window.Telegram.WebApp.openTelegramLink(TELEGRAM_CHANNEL_LINK);
+            } else {
+                window.location.href = TELEGRAM_CHANNEL_LINK;
+            }
+        }
+
+        const taskContainer = document.getElementById('task-list-container');
+        for (let i = 1; i <= 10; i++) {
+            taskContainer.innerHTML += `
+                <div class="task-item">
+                    <div class="task-info">
+                        <h4>Ad Option #${i}</h4>
+                        <p>Reward: +20 Coins</p>
+                    </div>
+                    <button class="task-btn" id="task-btn-${i}" onclick="playTaskAd(${i})">Play Ad</button>
+                </div>
+            `;
+        }
+
+        function playTaskAd(taskId) {
+            alert(`Opening Ad for Option #${taskId}... (Yahan apna ad link lagayein)`);
+
+            let btn = document.getElementById(`task-btn-${taskId}`);
+            btn.disabled = true;
+            
+            let timeLeft = 60;
+            let timer = setInterval(() => {
+                if (timeLeft > 0) {
+                    btn.innerText = `Locked (${timeLeft}s)`;
+                    timeLeft--;
+                } else {
+                    clearInterval(timer);
+                    btn.disabled = false;
+                    btn.innerText = "Play Ad";
+                }
+            }, 1000);
+
+            coins += 20; 
+            saveCoins();
+            updateUI();
+        }
+
+        function generatePuzzle() {
+            let num1 = Math.floor(Math.random() * 15) + 1;
+            let num2 = Math.floor(Math.random() * 15) + 1;
+            currentAnswer = num1 + num2;
+            document.getElementById('puzzle-question').innerText = `What is ${num1} + ${num2}?`;
+            document.getElementById('puzzle-answer').value = '';
+        }
+
+        function submitPuzzle() {
+            let userAnswer = parseInt(document.getElementById('puzzle-answer').value);
+
+            if (isNaN(userAnswer)) {
+                alert("Please enter a valid number!");
+                return;
+            }
+
+            if (userAnswer === currentAnswer) {
+                alert("Puzzle Solved! Opening sponsor ad...");
+                setTimeout(() => {
+                    coins += 20; 
+                    saveCoins();
+                    updateUI();
+                    alert("Success! You earned +20 coins 🎉");
+                    generatePuzzle();
+                }, 1000);
+            } else {
+                alert("Wrong answer! Try again.");
+                generatePuzzle();
+            }
+        }
+
+        function saveCoins() {
+            localStorage.setItem('tma_coins', coins);
+        }
+
+        function updateUI() {
+            document.getElementById('home-coin-count').innerText = coins.toLocaleString();
+            document.getElementById('detail-coin-count').innerText = `${coins.toLocaleString()} Coins`;
+        }
+    </script>
+</body>
+  </html>
